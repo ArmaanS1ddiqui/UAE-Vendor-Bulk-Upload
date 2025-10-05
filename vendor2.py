@@ -1,6 +1,3 @@
-# RDash Vendor Automation Script v3.4 (Final Loop Correction)
-# Loops through the Excel file, clicking "+ Add New Vendor" for each entry,
-# and uses the browser's "Back" button to reset for the next loop.
 
 import pandas as pd
 from selenium import webdriver
@@ -12,19 +9,17 @@ from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 import time
 
-# --- 1. CONFIGURATION ---
-# !!! IMPORTANT !!!
-# UPDATE THIS PATH to where you saved your chromedriver.exe file.
+
 CHROME_DRIVER_PATH = "C:/Users/rando/Desktop/codes/Projects/Vendor Bulk Upload/chromedriver-win64/chromedriver.exe"
 EXCEL_FILE_PATH = "Vendors.xlsx"
 
-# --- 2. SETUP SELENIUM & ATTACH TO BROWSER ---
+
 chrome_options = Options()
 chrome_options.add_experimental_option("debuggerAddress", "127.0.0.1:9211")
 try:
     service = Service(executable_path=CHROME_DRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=chrome_options)
-    wait = WebDriverWait(driver, 25) # Wait up to 25 seconds for elements to appear
+    wait = WebDriverWait(driver, 25) 
     print("✅ Script Attached to Browser Successfully.")
 except Exception as e:
     print("❌ ERROR: Could not attach to Chrome.")
@@ -32,7 +27,7 @@ except Exception as e:
     print(f"   Error details: {e}")
     exit()
 
-# --- 3. READ DATA FROM EXCEL ---
+
 try:
     df = pd.read_excel(EXCEL_FILE_PATH, dtype={'TRN': str})
     df['TRN'] = df['TRN'].str.replace('.0', '', regex=False)
@@ -41,7 +36,7 @@ except FileNotFoundError:
     print(f"❌ ERROR: The file '{EXCEL_FILE_PATH}' was not found. Please make sure it's in the same folder.")
     exit()
 
-# --- 4. MAIN AUTOMATION LOOP ---
+
 for index, row in df.iterrows():
     vendor_name = row['VendorName']
     trn = row['TRN']
@@ -49,27 +44,27 @@ for index, row in df.iterrows():
     print(f"\n--- Processing Vendor: {vendor_name} ---")
 
     try:
-        # Step 1: Click '+ Add New Vendor' (MOVED INSIDE THE LOOP)
+        
         print("   > 1/6: Clicking '+ Add New Vendor'...")
         add_vendor_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//span[text()='+ Add New Vendor']]")))
         add_vendor_button.click()
 
-        # Step 2: Click 'Do not have Trade License'
+        
         print("   > 2/6: Clicking 'Do not have Trade License'...")
         no_trade_license_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Do not have Trade License Number']")))
         no_trade_license_button.click()
         
-        # Step 3: Enter Company Registration Name
+        
         print(f"   > 3/6: Entering Company Name: '{vendor_name}'...")
         company_name_input = wait.until(EC.visibility_of_element_located((By.NAME, "companyName")))
         company_name_input.send_keys(vendor_name)
         
-        # Step 4: Click the first 'Add & Continue'
+        
         print("   > 4/6: Clicking first 'Add & Continue'...")
         add_continue_1 = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[@title='Add & Continue']")))
         add_continue_1.click()
         
-        # Step 5: Handle TRN entry or Skip conditionally
+        
         if pd.notna(trn) and str(trn).strip():
             print(f"   > 5/6: TRN found. Entering TRN: '{trn}'...")
             trn_input = wait.until(EC.visibility_of_element_located((By.NAME, "TRN")))
@@ -83,14 +78,14 @@ for index, row in df.iterrows():
             skip_kyc = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='side-panel-footer']//button[.//span[text()='Skip']]")))
             skip_kyc.click()
         
-        # Step 6: Wait and navigate back for the next vendor
+        
         print("   > Waiting for success confirmation...")
         time.sleep(3) 
 
         print("   > Navigating back to prepare for next vendor...")
         driver.back()
 
-        # Wait for the main page to be ready for the next loop
+        
         wait.until(EC.presence_of_element_located((By.XPATH, "//button[.//span[text()='+ Add New Vendor']]")))
         
         print(f"--- ✅ SUCCESS: Vendor '{vendor_name}' added. Ready for next. ---")
@@ -101,11 +96,11 @@ for index, row in df.iterrows():
         try:
             print("   > Attempting to recover by refreshing the page...")
             driver.refresh()
-            time.sleep(3) # Wait for page to refresh
+            time.sleep(3) 
         except:
             print("   > Could not recover. The script might stop here.")
-            break # Exit the loop if we can't recover the state
+            break 
             
-# --- 7. CLEANUP ---
+
 print("\n\nAutomation complete. All vendors processed.")
 driver.quit()
